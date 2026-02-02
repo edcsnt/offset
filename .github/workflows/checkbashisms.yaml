@@ -8,7 +8,7 @@ on:
       - master
     paths:
       - .github/workflows/checkbashisms.yaml
-      - ofs
+      - offset
   workflow_dispatch: {}
 permissions: {}
 defaults:
@@ -30,9 +30,9 @@ jobs:
           curl -fo /usr/local/bin/checkbashisms \
           https://salsa.debian.org/debian/devscripts/-/raw/$t/scripts/checkbashisms.pl \
           -OSs \
-          https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/${{ github.ref_name }}/ofs
+          https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/${{ github.ref_name }}/offset
           chmod +x /usr/local/bin/checkbashisms
-          checkbashisms -pflx ofs
+          checkbashisms -pflx offset
       # yamllint enable rule:line-length
     timeout-minutes: 1
 ...

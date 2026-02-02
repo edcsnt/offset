@@ -2,7 +2,9 @@
 # Copyright 2026 edcsnt. All rights reserved.
 
 case $1 in -l) w=0; shift; esac
-case $# in [01]) printf 'usage: ofs [-l] file function...\n' >&2; exit 1; esac
+case $# in
+[01]) printf 'usage: offset [-l] file function...\n' >&2; exit 1
+esac
 
 f=$1
 shift
@@ -17,13 +19,22 @@ esac
 
 for fn
 do
-	case $fn in
-	*[\&*./[\\]*)
-		tmp=$fn esc=
+	case $w in
+	?*)
+		pre=$fn' '
 		while :
 		do
-			c=${tmp%"${tmp#?}"}
-			tmp=${tmp#?}
+			case $((${#pre} > w)) in 1) break; esac
+			pre=$pre' '
+		done
+	esac
+	case $fn in
+	*[\&*./[\\]*)
+		esc=
+		while :
+		do
+			c=${fn%"${fn#?}"}
+			fn=${fn#?}
 			case $c in
 			        '') break        ;;
 			[\&*./[\\]) esc=$esc\\$c ;;
@@ -33,15 +44,6 @@ do
 		;;
 	*)
 		esc=$fn
-	esac
-	case $w in
-	?*)
-		pre=$fn' '
-		while :
-		do
-			case $((${#pre} > w)) in 1) break; esac
-			pre=$pre' '
-		done
 	esac
 	s="$s;s/^$esc [iTtWw] \([^ ]*\).*/${pre}0x\1/p"
 done

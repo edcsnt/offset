@@ -1,7 +1,7 @@
-ofs
-===
+offset
+======
 Given an object file, executable file, or object-file library, and a
-list of function names, ofs prints their symbol addresses. It is a
+list of function names, offset prints their symbol addresses. It is a
 wrapper around nm(1).
 
 Function names are not demangled.
@@ -29,4 +29,4 @@ To uninstall, simply run:
 
 Usage
 -----
-See ofs(1).
+See offset(1).

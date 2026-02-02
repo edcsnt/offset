@@ -9,7 +9,7 @@ on:
     paths:
       - .github/workflows/shellcheck.yaml
       - .shellcheckrc
-      - ofs
+      - offset
   workflow_dispatch: {}
 permissions: {}
 defaults:
@@ -28,8 +28,8 @@ jobs:
           curl -fOSs \
           https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/${{ github.ref_name }}/.shellcheckrc \
           -O \
-          https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/${{ github.ref_name }}/ofs
-          shellcheck -aC ofs
+          https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/${{ github.ref_name }}/offset
+          shellcheck -aC offset
       # yamllint enable rule:line-length
     timeout-minutes: 1
 ...

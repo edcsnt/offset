@@ -1,7 +1,7 @@
 # Copyright 2026 edcsnt. All rights reserved.
 .POSIX:
 
-SRC = ofs
+SRC = offset
 PREFIX = /usr/local
 MANPREFIX = $(PREFIX)/share/man
 

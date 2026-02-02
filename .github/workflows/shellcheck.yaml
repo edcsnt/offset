@@ -1,0 +1,35 @@
+---
+# Copyright 2026 edcsnt. All rights reserved.
+name: shellcheck
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/shellcheck.yaml
+      - .shellcheckrc
+      - ofs
+  workflow_dispatch: {}
+permissions: {}
+defaults:
+  run:
+    shell: sh
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+jobs:
+  shellcheck:
+    runs-on:
+      - ubuntu-slim
+    steps:
+      # yamllint disable rule:line-length
+      - run: |
+          curl -fOSs \
+          https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/${{ github.ref_name }}/.shellcheckrc \
+          -O \
+          https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/${{ github.ref_name }}/ofs
+          shellcheck -aC ofs
+      # yamllint enable rule:line-length
+    timeout-minutes: 1
+...

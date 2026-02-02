@@ -1,0 +1,32 @@
+ofs
+===
+Given an object file, executable file, or object-file library, and a
+list of function names, ofs prints their symbol addresses. It is a
+wrapper around nm(1).
+
+Function names are not demangled.
+
+
+Dependencies
+------------
+* POSIX shell
+* POSIX nm, printf, and sed utilities
+
+No GNU extensions are used.
+
+
+Installation
+------------
+Edit the PREFIX variable in the Makefile or leave it at the default of
+/usr/local and run:
+
+	make install
+
+To uninstall, simply run:
+
+	make uninstall
+
+
+Usage
+-----
+See ofs(1).

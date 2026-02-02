@@ -1,0 +1,7 @@
+# Copyright 2026 edcsnt. All rights reserved.
+# exercise good judgment
+disable=SC2249,SC2250
+enable=all
+external-sources=true
+# conform strictly to POSIX
+shell=sh

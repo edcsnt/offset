@@ -1,0 +1,38 @@
+---
+# Copyright 2026 edcsnt. All rights reserved.
+name: checkbashisms
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/checkbashisms.yaml
+      - ofs
+  workflow_dispatch: {}
+permissions: {}
+defaults:
+  run:
+    shell: sh
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+jobs:
+  checkbashisms:
+    runs-on:
+      - ubuntu-slim
+    steps:
+      # yamllint disable rule:line-length
+      - run: |
+          t=$(curl -fSs \
+          https://salsa.debian.org/api/v4/projects/18475/repository/tags \
+          | jq -r '.[0].name')
+          curl -fo /usr/local/bin/checkbashisms \
+          https://salsa.debian.org/debian/devscripts/-/raw/$t/scripts/checkbashisms.pl \
+          -OSs \
+          https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/${{ github.ref_name }}/ofs
+          chmod +x /usr/local/bin/checkbashisms
+          checkbashisms -pflx ofs
+      # yamllint enable rule:line-length
+    timeout-minutes: 1
+...

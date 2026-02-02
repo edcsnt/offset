@@ -1,0 +1,40 @@
+---
+# Copyright 2026 edcsnt. All rights reserved.
+extends: default
+
+rules:
+  anchors:
+    forbid-duplicated-anchors: true
+    forbid-unused-anchors: true
+  braces:
+    forbid: non-empty
+  brackets:
+    forbid: non-empty
+  comments:
+    ignore-shebangs: false
+  comments-indentation: enable
+  document-end:
+    present: true
+  document-start:
+    present: true
+  empty-lines:
+    max: 1
+  empty-values: enable
+  float-values:
+    require-numeral-before-decimal: true
+    forbid-scientific-notation: true
+    forbid-nan: true
+    forbid-inf: true
+  indentation:
+    spaces: 2
+    check-multi-line-strings: true
+  line-length:
+    max: 79
+    # URLs
+    allow-non-breakable-inline-mappings: true
+  # <https://x.com/thockin/status/1346873150382870528>
+  octal-values: enable
+  quoted-strings:
+    required: only-when-needed
+  truthy: enable
+...

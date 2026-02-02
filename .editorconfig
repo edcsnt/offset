@@ -1,0 +1,19 @@
+; Copyright 2026 edcsnt. All rights reserved.
+root = true
+[*]
+indent_style = tab
+indent_size = 8
+end_of_line = lf
+charset = utf-8
+spelling_language = en-US
+trim_trailing_whitespace = true
+insert_final_newline = true
+max_line_length = 79
+[*.yaml]
+indent_style = space
+indent_size = 2
+[.yamllint]
+indent_style = space
+indent_size = 2
+[COMMIT_EDITMSG]
+max_line_length = 72

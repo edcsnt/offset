@@ -1,0 +1,30 @@
+---
+# Copyright 2026 edcsnt. All rights reserved.
+name: yamllint
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**.yaml'
+      - .yamllint
+  workflow_dispatch: {}
+permissions: {}
+defaults:
+  run:
+    shell: sh
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+jobs:
+  yamllint:
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - run: |
+          git clone -qb ${{ github.ref_name }} --depth 1 \
+          ${{ github.server_url }}/${{ github.repository }}.git
+          cd ${{ github.event.repository.name }}
+          yamllint -f colored -s .
+...

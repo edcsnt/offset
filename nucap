@@ -1,0 +1,103 @@
+#!/bin/sh
+swap() {
+        _h=$1
+        while case ${#_h} in 16) break ;; esac; do _h=0$_h; done
+        _sw=
+        while case $_h in ??*) ;; *) false ;; esac; do
+                _b=${_h%"${_h#??}"}; _h=${_h#??}; _sw=$_b$_sw
+        done
+}
+duration=60 capture=
+case $1 in -c) capture=1; duration=${2:-60} ;; esac
+
+out=$(adb shell 'pm path com.nu.production && getprop ro.product.cpu.abi')
+abi=${out##*
+}
+case $abi in *-*) nabi=${abi%-*}_${abi#*-} ;; *) nabi=$abi ;; esac
+apk=${out%base.apk*}; apk=${apk##*package:}split_config.$nabi.apk
+adb pull -q "$apk"
+_fn="lib/$abi/libflutter.so"
+for rev in $(unzip -p "${apk##*/}" "$_fn" | strings -an 40)
+do
+        case ${#rev} in 40) ;; *) continue ;; esac
+        case $rev in *[!0-9a-f]*) continue ;; esac
+        curl -fOs \
+                "https://storage.googleapis.com/flutter_infra_release/flutter/$rev/android-$abi-release/symbols.zip" \
+                && break
+done
+unzip -oq symbols.zip libflutter.so -d symbols/
+info=$(readelf -s -l "symbols/${_fn##*/}" | while IFS= read -r _l; do
+        case $_l in *FUNC*ssl_lo*) set -- $_l; _va=0x$2 ;;
+        *LOAD*) set -- $_l; _pp=$2; _pv=$3; IFS= read -r _l
+                case $_l in *R*E*) _po=$_pp; _pva=$_pv ;; esac ;; esac
+        case ${_va:+v}${_po:+p} in vp)
+                printf '%s %s %s' "$_va" "$_po" "$_pva"; break ;; esac
+done)
+set -- $info; vaddr=$1
+case $vaddr in 0x?*) ;; *) printf 'symbol not found\n' >&2; exit 1 ;; esac
+foff=$(($vaddr - $3 + $2))
+h_off=$(unzip -Z -v "${apk##*/}" "$_fn" \
+        | while IFS= read -r _l; do case $_l in
+        *"offset of local header"*) printf '%s' "${_l##* }"; break
+        ;; esac; done)
+set -- $(od -An -tu1 -j $((h_off + 28)) -N 2 "${apk##*/}")
+data_off=$((h_off + 30 + ${#_fn} + $1 + $2 * 256))
+uprobe=$((data_off + foff))
+printf 'uprobe offset: 0x%x\n' "$uprobe" >&2
+
+case $capture in 1)
+tfs=/sys/kernel/tracing
+sys=/apex/com.android.conscrypt/lib64/libssl.so
+fa="label=+0(%x1):string slen=%x3:u64"
+fa="$fa cr0=+48(+48(%x0)):x64 cr1=+56(+48(%x0)):x64"
+fa="$fa cr2=+64(+48(%x0)):x64 cr3=+72(+48(%x0)):x64"
+fa="$fa s0=+0(%x2):x64 s1=+8(%x2):x64 s2=+16(%x2):x64"
+fa="$fa s3=+24(%x2):x64 s4=+32(%x2):x64 s5=+40(%x2):x64"
+adb shell su -c sh <<EOF
+rm -f /data/local/tmp/raw_keylog.txt /data/local/tmp/nu.pcap 2>/dev/null
+echo 0 > $tfs/tracing_on; echo 0 > $tfs/events/enable
+echo > $tfs/uprobe_events 2>/dev/null; echo > $tfs/trace
+echo 4096 > $tfs/buffer_size_kb
+echo "p:fkeylog $apk:$uprobe $fa" >> $tfs/uprobe_events
+echo "p:skeylog $sys:0x54894 $fa" >> $tfs/uprobe_events
+echo 1 > $tfs/events/uprobes/fkeylog/enable
+echo 1 > $tfs/events/uprobes/skeylog/enable
+echo 1 > $tfs/tracing_on
+am force-stop com.nu.production
+pm clear --cache-only com.nu.production >/dev/null 2>&1 &
+_if=\$(ip route show default); _if=\${_if##*dev }; _if=\${_if%% *}
+: "\${_if:=wlan0}"
+cat $tfs/trace_pipe > /data/local/tmp/raw_keylog.txt &
+_tp=\$!
+tcpdump -i \$_if -w /data/local/tmp/nu.pcap 2>/dev/null &
+_dp=\$!
+sleep $duration
+kill \$_tp \$_dp 2>/dev/null; wait \$_tp \$_dp 2>/dev/null
+echo 0 > $tfs/events/uprobes/fkeylog/enable
+echo 0 > $tfs/events/uprobes/skeylog/enable
+echo > $tfs/uprobe_events; echo 7 > $tfs/buffer_size_kb
+echo 1 > $tfs/events/enable
+EOF
+adb pull /data/local/tmp/raw_keylog.txt .
+adb pull /data/local/tmp/nu.pcap .
+esac
+
+case $capture in 1)
+seen= nk=0
+while IFS= read -r line || case $line in ?*) ;; *) false ;; esac; do
+        case $line in *keylog:*) ;; *) continue ;; esac
+        slen=${line#*slen=}; slen=${slen%% *}; nv=$((slen / 8))
+        cr=; for f in cr0 cr1 cr2 cr3; do
+                v=${line#*"$f"=0x}; v=${v%% *}; swap "$v"; cr=$cr$_sw; done
+        sec= i=0; for f in s0 s1 s2 s3 s4 s5; do
+                case $i in $nv) break ;; esac; v=${line#*"$f"=0x}; v=${v%% *}
+                swap "$v"; sec=$sec$_sw; i=$((i + 1)); done
+        lab=${line#*label=\"}; lab=${lab%%\"*}
+        case $lab in *TRAFFIC*|*RANDOM*|*EXPORTER*) ;; *) continue ;; esac
+        key=$lab:$cr; case " $seen " in *" $key "*) continue ;; esac
+        seen="$seen $key"; nk=$((nk + 1))
+        printf '%s %s %s\n' "$lab" "$cr" "$sec"
+done < raw_keylog.txt > sslkeys.log
+printf '%d TLS keys decoded\n' "$nk" >&2
+editcap --inject-secrets tls,sslkeys.log nu.pcap - 2>/dev/null
+esac
